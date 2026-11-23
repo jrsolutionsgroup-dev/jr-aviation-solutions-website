@@ -1,1 +1,1904 @@
+<!DOCTYPE html>
+<html lang="nl" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JR Aviation Solutions — Aviation Data Visualization & Dashboards</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Typography: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              DEFAULT: '#0B1F3A',
+              light: '#16325B',
+              dark: '#061326',
+              muted: '#2B4263'
+            },
+            slate: {
+              text: '#475569',
+              subtle: '#64748B',
+              border: '#E2E8F0',
+              surface: '#F8F9FA'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #F8F9FA;
+      color: #0B1F3A;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4, .font-display {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .hairline-border {
+      border-color: #E2E8F0;
+    }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F8F9FA;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-[#0B1F3A] selection:text-white">
+
+  <!-- Application Root Container -->
+  <div id="app" class="flex-grow flex flex-col"></div>
+
+  <!-- Notification Toast Container (Replaces alert/confirm) -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- Confirmation Modal Container -->
+  <div id="modal-container" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#0B1F3A]/40 backdrop-blur-[1px] p-4"></div>
+
+  <script>
+    /**
+     * ============================================================================
+     * JR AVIATION SOLUTIONS - EXECUTIVE CORPORATE APPLICATION
+     * Built in complete isolation. Bilingual (NL / EN).
+     * Persisted state via localStorage with clean reset capability.
+     * ============================================================================
+     */
+
+    // ----------------------------------------------------------------------------
+    // 1. TRANSLATION DICTIONARY (NL & EN)
+    // ----------------------------------------------------------------------------
+    const I18N = {
+      nl: {
+        nav: {
+          home: 'Overzicht',
+          methodology: 'Werkwijze & Oplossingen',
+          contact: 'Contact',
+          portal: 'Klantportaal',
+          admin: 'Beheerportaal',
+          login: 'Inloggen',
+          logout: 'Uitloggen'
+        },
+        maintenanceBanner: 'Onderhoudsmodus actief — De publieke website is tijdelijk afgeschermd voor bezoekers.',
+        maintenanceView: {
+          tag: 'Systeemstatus • Onderhoud',
+          title: 'Platform tijdelijk in onderhoud',
+          description: 'JR Aviation Solutions voert momenteel geplande werkzaamheden uit aan de data-omgeving en dashboardinfrastructuur. De website is binnenkort weer regulier bereikbaar.',
+          contactNote: 'Voor dringende vragen kunt u rechtstreeks contact opnemen via',
+          adminLoginBtn: 'Beheerder Inloggen'
+        },
+        home: {
+          badge: 'Non-Commercieel Initiatief voor de Luchtvaartsector',
+          headline: 'Heldere datavisualisatie en maatwerk dashboards voor de luchtvaart.',
+          subheadline: 'JR Aviation Solutions ondersteunt luchtvaartorganisaties, luchthavens en operationele teams met overzichtelijke, betrouwbare dashboards op basis van uw eigen aangeleverde datasets — zonder commercieel winstoogmerk.',
+          ctaPrimary: 'Vraag een dashboard aan',
+          ctaSecondary: 'Naar het klantportaal',
+          pillarsTitle: 'Kernprincipes',
+          pillarsSubtitle: 'Ontworpen voor operationele rust, precisie en directe toepasbaarheid.',
+          pillars: [
+            {
+              code: '01',
+              title: 'Volledig Non-Commercieel',
+              desc: 'Opgericht vanuit betrokkenheid bij de luchtvaartsector. Wij leveren hoogwaardige data-oplossingen zonder licentiekosten of commerciële drempels.'
+            },
+            {
+              code: '02',
+              title: 'Uw Data als Fundament',
+              desc: 'U levert uw operationele, logistieke of vluchtgegevens aan; wij structureren en vertalen deze naar een overzichtelijk en interactief dashboard.'
+            },
+            {
+              code: '03',
+              title: 'Afgeschermde Klantomgeving',
+              desc: 'Iedere aangesloten organisatie ontvangt een persoonlijk portaal met eigen inloggegevens, maatwerkcodering en bijbehorende technische documentatie.'
+            }
+          ],
+          workflowTitle: 'Van ruwe dataset naar inzicht',
+          workflowSteps: [
+            {
+              step: 'Stap 1',
+              title: 'Data-aanlevering & Inventarisatie',
+              desc: 'U deelt uw beschikbare data (bijv. CSV, Excel of gestandaardiseerde exports) en de gewenste kernindicatoren via een beveiligd traject.'
+            },
+            {
+              step: 'Stap 2',
+              title: 'Modellering & Visualisatie',
+              desc: 'Wij ontwikkelen een rustig, op uw organisatie toegespitst dashboard met focus op leesbaarheid, nauwkeurigheid en relevante luchtvaartstatistieken.'
+            },
+            {
+              step: 'Stap 3',
+              title: 'Oplevering in uw Portaal',
+              desc: 'Na oplevering logt u in op uw persoonlijke JR Aviation Solutions klantportaal om uw dashboard te gebruiken en de documentatie te raadplegen.'
+            }
+          ]
+        },
+        methodology: {
+          tag: 'Werkwijze & Oplossingen',
+          title: 'Gestructureerde analyse voor luchtvaartorganisaties',
+          intro: 'In de luchtvaart is overzicht essentieel. Overvolle schermen leiden af van wat werkelijk telt. JR Aviation Solutions ontwikkelt daarom ingetogen, doelgerichte visualisaties die aansluiten op uw specifieke praktijk.',
+          sections: [
+            {
+              title: 'Toepassingsgebieden',
+              items: [
+                'Vluchtuitvoering & stiptheidsanalyses (OTP, turn-around tijden)',
+                'Vlootinzet, onderhoudsplanning en beschikbaarheidsrapportages',
+                'Passagiers- en vrachtstromen voor regionale luchthavens en afhandelaars',
+                'Veiligheids- en kwaliteitsindicatoren voor interne audit en rapportage'
+              ]
+            },
+            {
+              title: 'Dataveiligheid & Isolatie',
+              items: [
+                'Elke klantomgeving wordt afzonderlijk geconfigureerd en opgebouwd.',
+                'Gegevens worden uitsluitend verwerkt voor het vervaardigen van uw specifieke dashboard.',
+                'Geen hergebruik van klantdata tussen verschillende organisaties of projecten.',
+                'Volledige transparantie door meegeleverde documentatie per opgeleverd product.'
+              ]
+            }
+          ],
+          ctaBoxTitle: 'Samenwerken met JR Aviation Solutions?',
+          ctaBoxText: 'Neem vrijblijvend contact op om de mogelijkheden voor uw organisatie of project te bespreken.',
+          ctaBoxBtn: 'Neem contact op'
+        },
+        contact: {
+          tag: 'Contact & Aanvraag',
+          title: 'Neem contact op met JR Aviation Solutions',
+          subtitle: 'Heeft u een vraag over ons non-commerciële initiatief of wilt u een dataset bespreken voor een dashboard op maat? Vul onderstaand formulier in.',
+          directEmailLabel: 'Direct e-mailadres',
+          orgLabel: 'Organisatie / Bedrijfsnaam',
+          orgPlaceholder: 'Bijv. Regionale Luchthaven / Luchtvaartmaatschappij',
+          nameLabel: 'Uw naam',
+          namePlaceholder: 'Voor- en achternaam',
+          emailLabel: 'Uw e-mailadres',
+          emailPlaceholder: 'naam@organisatie.nl',
+          subjectLabel: 'Onderwerp',
+          subjectPlaceholder: 'Aanvraag dashboard / Data-inventarisatie',
+          messageLabel: 'Toelichting & Gewenste Data-inzichten',
+          messagePlaceholder: 'Beschrijf kort welke data u beschikbaar heeft en welke inzichten u wilt visualiseren...',
+          submitBtn: 'Verstuur naar jraviationsolutions@gmail.com',
+          copyBtn: 'Kopieer berichttekst',
+          sentSuccessTitle: 'E-mailclient geopend voor verzending',
+          sentSuccessDesc: 'Uw bericht is voorbereid voor jraviationsolutions@gmail.com. Indien uw e-mailprogramma niet automatisch opent, kunt u de tekst hieronder direct kopiëren.'
+        },
+        loginPage: {
+          tag: 'Beveiligde Toegang',
+          title: 'Inloggen Klant- & Beheerportaal',
+          subtitle: 'Voer uw persoonlijke inloggegevens in om toegang te krijgen tot uw op maat gemaakte dashboard en productdocumentatie.',
+          username: 'Gebruikersnaam',
+          password: 'Wachtwoord',
+          submit: 'Inloggen',
+          errorInvalid: 'Ongeldige gebruikersnaam of wachtwoord. Controleer uw gegevens en probeer het opnieuw.'
+        },
+        clientPortal: {
+          tag: 'Klantportaal',
+          welcome: 'Welkom,',
+          assignedProduct: 'Toegewezen Product',
+          noProductAssigned: 'Nog geen product toegewezen',
+          statusActive: 'Actief & Geverifieerd',
+          statusPending: 'In afwachting van oplevering',
+          tabDashboard: 'Interactief Dashboard',
+          tabDocs: 'Productdocumentatie',
+          fullscreenBtn: 'Volledig scherm',
+          exitFullscreenBtn: 'Sluit volledig scherm',
+          downloadHtmlBtn: 'Download Dashboard (.html)',
+          downloadDocsBtn: 'Download Documentatie (.txt)',
+          noDashboardTitle: 'Nog geen dashboard beschikbaar',
+          noDashboardMsg: 'Er is momenteel nog geen dashboardcode geüpload voor uw account door de beheerder. Zodra uw maatwerkdashboard is opgeleverd, verschijnt deze automatisch op deze pagina.',
+          noDocsTitle: 'Nog geen documentatie beschikbaar',
+          noDocsMsg: 'Er is nog geen productdocumentatie geüpload voor dit account. Zodra de specificaties en handleiding zijn toegevoegd door de beheerder, kunt u deze hier inzien.'
+        },
+        adminPortal: {
+          tag: 'Beheeromgeving',
+          title: 'JR Aviation Solutions — Beheer & Configuratie',
+          subtitle: 'Beheer klantaccounts, upload op maat gemaakte dashboardcodering en schakel de onderhoudsmodus van de website.',
+          maintenanceTitle: 'Website Onderhoudsmodus (Maintenance Mode)',
+          maintenanceDesc: 'Wanneer geactiveerd, zien publieke bezoekers een onderhoudsmelding. Beheerders behouden toegang via het inlogscherm.',
+          maintenanceActive: 'Status: In Onderhoud',
+          maintenanceInactive: 'Status: Online (Publiek)',
+          toggleMaintenance: 'Schakel Onderhoudsmodus',
+          clientsHeading: 'Geregistreerde Klanten & Dashboards',
+          addClientBtn: '+ Nieuwe Klant Toevoegen',
+          tableOrg: 'Organisatie',
+          tableUser: 'Gebruikersnaam',
+          tableProduct: 'Productnaam',
+          tableStatus: 'Dashboard Status',
+          tableActions: 'Acties',
+          statusConfigured: 'Code Geüpload',
+          statusEmpty: 'Geen Code',
+          editBtn: 'Code & Details Beheren',
+          previewClientBtn: 'Bekijk als Klant',
+          deleteBtn: 'Verwijder',
+          editorTitleNew: 'Nieuw Klantaccount Aanmaken',
+          editorTitleEdit: 'Klantaccount & Dashboard Codering Bewerken',
+          fieldOrg: 'Organisatienaam',
+          fieldContact: 'Contactpersoon',
+          fieldUser: 'Gebruikersnaam (Login)',
+          fieldPass: 'Wachtwoord (Login)',
+          fieldProduct: 'Product- / Dashboardtitel',
+          fieldUploadFile: 'Upload HTML/Dashboard Bestand (.html)',
+          fieldCode: 'Dashboard Codering (HTML / CSS / JS)',
+          fieldCodeHelp: 'Plak hier de volledige zelfstandige HTML-code van het dashboard of upload hierboven een .html-bestand. Dit wordt uitsluitend getoond wanneer deze specifieke klant inlogt.',
+          fieldDocs: 'Productdocumentatie & Handleiding',
+          saveBtn: 'Opslaan & Publiceren naar Klantportaal',
+          cancelBtn: 'Annuleren',
+          backToAdminBtn: '← Terug naar Beheeroverzicht',
+          resetDemoBtn: 'Herstel Standaardinstellingen'
+        },
+        footer: {
+          tagline: 'Non-commercieel initiatief voor luchtvaartdata en maatwerk dashboards.',
+          rights: 'Alle rechten voorbehouden.'
+        }
+      },
+      en: {
+        nav: {
+          home: 'Overview',
+          methodology: 'Methodology & Solutions',
+          contact: 'Contact',
+          portal: 'Client Portal',
+          admin: 'Administration',
+          login: 'Sign In',
+          logout: 'Sign Out'
+        },
+        maintenanceBanner: 'Maintenance mode active — The public website is currently restricted for visitors.',
+        maintenanceView: {
+          tag: 'System Status • Maintenance',
+          title: 'Platform Under Scheduled Maintenance',
+          description: 'JR Aviation Solutions is currently performing scheduled updates to its data environment and dashboard infrastructure. Normal public access will resume shortly.',
+          contactNote: 'For urgent inquiries, please contact us directly at',
+          adminLoginBtn: 'Administrator Sign In'
+        },
+        home: {
+          badge: 'Non-Commercial Initiative for the Aviation Sector',
+          headline: 'Clear data visualization and bespoke dashboards for aviation.',
+          subheadline: 'JR Aviation Solutions supports aviation organizations, airports, and operational teams with calm, reliable dashboards built from your own provided datasets — completely non-commercial.',
+          ctaPrimary: 'Request a dashboard',
+          ctaSecondary: 'Open client portal',
+          pillarsTitle: 'Core Principles',
+          pillarsSubtitle: 'Engineered for operational clarity, precision, and immediate usability.',
+          pillars: [
+            {
+              code: '01',
+              title: 'Strictly Non-Commercial',
+              desc: 'Founded out of dedication to the aviation industry. We deliver high-grade data visualization solutions without licensing fees or commercial barriers.'
+            },
+            {
+              code: '02',
+              title: 'Built on Your Data',
+              desc: 'You provide your operational, logistical, or flight datasets; we structure and translate them into a clear, interactive analytical dashboard.'
+            },
+            {
+              code: '03',
+              title: 'Isolated Client Portal',
+              desc: 'Every participating organization receives a dedicated portal with personal credentials, custom dashboard code, and accompanying product documentation.'
+            }
+          ],
+          workflowTitle: 'From raw dataset to operational insight',
+          workflowSteps: [
+            {
+              step: 'Step 1',
+              title: 'Data Provision & Scoping',
+              desc: 'You share your available dataset (e.g., CSV, Excel, or structured exports) along with your target KPIs through a controlled workflow.'
+            },
+            {
+              step: 'Step 2',
+              title: 'Modeling & Visualization',
+              desc: 'We craft an understated, tailored dashboard focused on legibility, accuracy, and relevant aviation metrics.'
+            },
+            {
+              step: 'Step 3',
+              title: 'Delivery in Your Portal',
+              desc: 'Upon completion, sign in to your personal JR Aviation Solutions client portal to interact with your dashboard and consult its documentation.'
+            }
+          ]
+        },
+        methodology: {
+          tag: 'Methodology & Solutions',
+          title: 'Structured analytics for aviation organizations',
+          intro: 'In aviation operations, clarity is paramount. Cluttered interfaces distract from critical signals. JR Aviation Solutions designs restrained, purposeful visualizations tailored to your operational reality.',
+          sections: [
+            {
+              title: 'Areas of Application',
+              items: [
+                'Flight operations & punctuality analytics (OTP, turnaround performance)',
+                'Fleet utilization, maintenance scheduling, and availability reporting',
+                'Passenger and cargo flow insights for regional airports and ground handlers',
+                'Safety and quality indicators for internal audits and executive reviews'
+              ]
+            },
+            {
+              title: 'Data Security & Isolation',
+              items: [
+                'Each client environment is configured and provisioned in isolation.',
+                'Data is processed strictly for constructing your designated dashboard.',
+                'No cross-organization reuse of client datasets or proprietary metrics.',
+                'Full transparency through dedicated technical documentation per deliverable.'
+              ]
+            }
+          ],
+          ctaBoxTitle: 'Collaborate with JR Aviation Solutions?',
+          ctaBoxText: 'Reach out to discuss how we can support your aviation organization or project.',
+          ctaBoxBtn: 'Get in touch'
+        },
+        contact: {
+          tag: 'Contact & Inquiry',
+          title: 'Contact JR Aviation Solutions',
+          subtitle: 'Have a question regarding our non-commercial initiative or wish to discuss a dataset for a bespoke dashboard? Complete the form below.',
+          directEmailLabel: 'Direct email address',
+          orgLabel: 'Organization / Company Name',
+          orgPlaceholder: 'e.g. Regional Airport / Airline Operations',
+          nameLabel: 'Your Name',
+          namePlaceholder: 'Full name',
+          emailLabel: 'Your Email Address',
+          emailPlaceholder: 'name@organization.com',
+          subjectLabel: 'Subject',
+          subjectPlaceholder: 'Dashboard inquiry / Dataset consultation',
+          messageLabel: 'Context & Desired Data Insights',
+          messagePlaceholder: 'Briefly describe the dataset you have available and the insights you wish to visualize...',
+          submitBtn: 'Send to jraviationsolutions@gmail.com',
+          copyBtn: 'Copy message text',
+          sentSuccessTitle: 'Email client prepared for dispatch',
+          sentSuccessDesc: 'Your inquiry has been formatted for jraviationsolutions@gmail.com. If your mail application did not open automatically, you may copy the message directly below.'
+        },
+        loginPage: {
+          tag: 'Authenticated Access',
+          title: 'Client & Administration Portal Login',
+          subtitle: 'Sign in with your assigned credentials to access your bespoke interactive dashboard and product documentation.',
+          username: 'Username',
+          password: 'Password',
+          submit: 'Sign In',
+          errorInvalid: 'Invalid username or password. Please verify your credentials and try again.'
+        },
+        clientPortal: {
+          tag: 'Client Portal',
+          welcome: 'Welcome,',
+          assignedProduct: 'Assigned Product',
+          noProductAssigned: 'No product assigned yet',
+          statusActive: 'Active & Verified',
+          statusPending: 'Awaiting Delivery',
+          tabDashboard: 'Interactive Dashboard',
+          tabDocs: 'Product Documentation',
+          fullscreenBtn: 'Fullscreen',
+          exitFullscreenBtn: 'Exit Fullscreen',
+          downloadHtmlBtn: 'Download Dashboard (.html)',
+          downloadDocsBtn: 'Download Documentation (.txt)',
+          noDashboardTitle: 'No dashboard available yet',
+          noDashboardMsg: 'No dashboard code has been uploaded to your account by the administrator yet. Once your bespoke dashboard is delivered, it will appear automatically on this page.',
+          noDocsTitle: 'No documentation available yet',
+          noDocsMsg: 'No product documentation has been uploaded for this account yet. Once specifications and instructions are added by the administrator, you will be able to review them here.'
+        },
+        adminPortal: {
+          tag: 'Administration Environment',
+          title: 'JR Aviation Solutions — Admin & Configuration',
+          subtitle: 'Manage client accounts, upload bespoke dashboard source code, and control platform maintenance mode.',
+          maintenanceTitle: 'Website Maintenance Mode',
+          maintenanceDesc: 'When enabled, public visitors see a maintenance notice. Administrators retain full access via the sign-in screen.',
+          maintenanceActive: 'Status: In Maintenance',
+          maintenanceInactive: 'Status: Online (Public)',
+          toggleMaintenance: 'Toggle Maintenance Mode',
+          clientsHeading: 'Registered Clients & Dashboards',
+          addClientBtn: '+ Add New Client',
+          tableOrg: 'Organization',
+          tableUser: 'Username',
+          tableProduct: 'Product Title',
+          tableStatus: 'Dashboard Status',
+          tableActions: 'Actions',
+          statusConfigured: 'Code Uploaded',
+          statusEmpty: 'No Code',
+          editBtn: 'Manage Code & Details',
+          previewClientBtn: 'Preview as Client',
+          deleteBtn: 'Remove',
+          editorTitleNew: 'Create New Client Account',
+          editorTitleEdit: 'Edit Client Account & Dashboard Code',
+          fieldOrg: 'Organization Name',
+          fieldContact: 'Contact Person',
+          fieldUser: 'Username (Login)',
+          fieldPass: 'Password (Login)',
+          fieldProduct: 'Product / Dashboard Title',
+          fieldUploadFile: 'Upload HTML/Dashboard File (.html)',
+          fieldCode: 'Dashboard Source Code (HTML / CSS / JS)',
+          fieldCodeHelp: 'Paste the complete self-contained HTML code for the client dashboard below or upload an .html file above. This code is rendered exclusively when this specific client signs in.',
+          fieldDocs: 'Product Documentation & User Guide',
+          saveBtn: 'Save & Publish to Client Portal',
+          cancelBtn: 'Cancel',
+          backToAdminBtn: '← Back to Admin Overview',
+          resetDemoBtn: 'Reset Default Settings'
+        },
+        footer: {
+          tagline: 'Non-commercial initiative for aviation data visualization and bespoke dashboards.',
+          rights: 'All rights reserved.'
+        }
+      }
+    };
+
+    // ----------------------------------------------------------------------------
+    // 2. STATE MANAGEMENT & PERSISTENCE
+    // ----------------------------------------------------------------------------
+    const STORAGE_KEY = 'jr_aviation_solutions_state_v2';
+
+    const DEFAULT_STATE = {
+      lang: 'nl',
+      currentPage: 'home', // 'home' | 'methodology' | 'contact' | 'login' | 'portal' | 'admin'
+      maintenanceMode: false,
+      currentUser: null, // { username, role: 'admin' | 'client', clientId?: string }
+      adminAccount: {
+        username: 'admin',
+        password: '1705admin!'
+      },
+      clients: [
+        {
+          id: 'client-default-01',
+          organization: 'Klant',
+          contactPerson: '',
+          username: 'klant',
+          password: 'klant123',
+          productTitle: '',
+          lastUpdated: '',
+          dashboardCode: '',
+          documentation: ''
+        }
+      ]
+    };
+
+    let state = loadState();
+
+    // Ephemeral UI state (not persisted)
+    let uiState = {
+      mobileMenuOpen: false,
+      loginError: '',
+      contactSubmittedPayload: null,
+      portalTab: 'dashboard', // 'dashboard' | 'docs'
+      isFullscreen: false,
+      editingClientId: null, // 'NEW' or client.id
+      previewingClientId: null // When admin previews a specific client's portal
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_STATE);
+        const parsed = JSON.parse(raw);
+        return {
+          ...structuredClone(DEFAULT_STATE),
+          ...parsed,
+          clients: Array.isArray(parsed.clients) ? parsed.clients : structuredClone(DEFAULT_STATE.clients)
+        };
+      } catch (e) {
+        console.error('State load error:', e);
+        return structuredClone(DEFAULT_STATE);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.error('State save error:', e);
+        showToast(
+          state.lang === 'nl'
+            ? 'Waarschuwing: Opslaglimiet in browser bereikt.'
+            : 'Warning: Browser storage limit reached.',
+          'error'
+        );
+      }
+    }
+
+    // ----------------------------------------------------------------------------
+    // 3. UTILITY FUNCTIONS (Notifications, Modals, Escaping, Clipboard)
+    // ----------------------------------------------------------------------------
+    function escapeHTML(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bgClass =
+        type === 'error'
+          ? 'bg-red-950 text-white border-red-800'
+          : type === 'success'
+          ? 'bg-[#0B1F3A] text-white border-[#16325B]'
+          : 'bg-white text-[#0B1F3A] border-slate-200 shadow-lg';
+
+      toast.className = `pointer-events-auto border rounded-md px-4 py-3 text-xs font-medium shadow-md transition-all duration-200 flex items-center justify-between gap-3 ${bgClass}`;
+      toast.innerHTML = `
+        <span>${escapeHTML(message)}</span>
+        <button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100 text-xs">✕</button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+      }, 4200);
+    }
+
+    function showConfirmModal(title, message, onConfirm) {
+      const modal = document.getElementById('modal-container');
+      const isNl = state.lang === 'nl';
+      modal.innerHTML = `
+        <div class="bg-white border border-slate-200 rounded-lg max-w-md w-full p-6 shadow-xl">
+          <h3 class="text-base font-semibold text-[#0B1F3A]">${escapeHTML(title)}</h3>
+          <p class="mt-2 text-sm text-slate-600 leading-relaxed">${escapeHTML(message)}</p>
+          <div class="mt-6 flex justify-end gap-3">
+            <button id="modal-cancel-btn" class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-[#0B1F3A] border border-slate-200 rounded-md">
+              ${isNl ? 'Annuleren' : 'Cancel'}
+            </button>
+            <button id="modal-confirm-btn" class="px-4 py-2 text-xs font-medium text-white bg-[#0B1F3A] hover:bg-[#16325B] rounded-md">
+              ${isNl ? 'Bevestigen' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      document.getElementById('modal-cancel-btn').onclick = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      };
+      document.getElementById('modal-confirm-btn').onclick = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        onConfirm();
+      };
+    }
+
+    function copyTextToClipboard(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast(
+          state.lang === 'nl' ? 'Tekst gekopieerd naar klembord.' : 'Text copied to clipboard.',
+          'success'
+        );
+      } catch (err) {
+        showToast(
+          state.lang === 'nl' ? 'Kopiëren mislukt.' : 'Copy failed.',
+          'error'
+        );
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8') {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ----------------------------------------------------------------------------
+    // 4. BESPOKE SVG LOGO RENDERER (Matches Uploaded JR Aviation Solutions Brand)
+    // ----------------------------------------------------------------------------
+    function renderBrandLogo(variant = 'horizontal', size = 'md') {
+      const iconDimensions =
+        size === 'lg' ? 'w-14 h-14' : size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+
+      // Precision vector recreation of the JR monogram + ascending aircraft line art
+      const monogramSVG = `
+        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" class="${iconDimensions} shrink-0" aria-hidden="true">
+          <!-- Letter J top bar & stem curving smoothly into aircraft flight path -->
+          <path d="M29 49H47V78C47 89.5 39.5 96 30.5 96C23.5 96 18.5 91.5 17 85.5" stroke="#0B1F3A" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Ascending flight path curve & sleek aircraft silhouette -->
+          <path d="M31 96C44 96 52.5 85.5 52.5 68V59C52.5 47.5 58.5 39.5 69.5 33.5L88 23.5" stroke="#0B1F3A" stroke-width="3.2" stroke-linecap="round"/>
+          <!-- Aircraft fuselage, nose & tail fin -->
+          <path d="M68.5 34L60 28.5L64.5 26L75 29.5L92.5 20.2C96.2 18.3 100.2 18.8 101.2 20.6C102.2 22.4 99.6 25.4 95.8 27.4L74.5 38.5" stroke="#0B1F3A" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Letter R stem, bowl & leg -->
+          <path d="M59.5 95V57" stroke="#0B1F3A" stroke-width="3.2" stroke-linecap="round"/>
+          <path d="M63 49H76.5C86.2 49 92.5 54.6 92.5 62.5C92.5 70.4 86.2 76 76.5 76H59.5" stroke="#0B1F3A" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M77.5 76L92.5 95" stroke="#0B1F3A" stroke-width="3.2" stroke-linecap="round"/>
+        </svg>
+      `;
+
+      if (variant === 'stacked') {
+        return `
+          <div class="inline-flex flex-col items-center select-none">
+            ${monogramSVG}
+            <span class="mt-3 font-display text-sm sm:text-base font-medium tracking-[0.26em] text-[#0B1F3A] uppercase">
+              JR AVIATION SOLUTIONS
+            </span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="inline-flex items-center gap-3 select-none">
+          ${monogramSVG}
+          <div class="flex flex-col">
+            <span class="font-display text-sm sm:text-[15px] font-semibold tracking-[0.18em] text-[#0B1F3A] uppercase leading-tight">
+              JR AVIATION
+            </span>
+            <span class="font-display text-[10px] sm:text-[11px] font-medium tracking-[0.28em] text-[#475569] uppercase leading-tight mt-0.5">
+              SOLUTIONS
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    // ----------------------------------------------------------------------------
+    // 5. NAVIGATION & AUTHENTICATION ACTIONS
+    // ----------------------------------------------------------------------------
+    function navigateTo(page) {
+      uiState.mobileMenuOpen = false;
+      uiState.loginError = '';
+      uiState.isFullscreen = false;
+      uiState.previewingClientId = null;
+      state.currentPage = page;
+      saveState();
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function setLanguage(lang) {
+      state.lang = lang;
+      document.documentElement.lang = lang;
+      saveState();
+      render();
+    }
+
+    function handleLoginSubmit(event) {
+      event.preventDefault();
+      const usernameInput = document.getElementById('login-username').value.trim();
+      const passwordInput = document.getElementById('login-password').value;
+
+      // 1. Check Admin credentials
+      if (
+        usernameInput === state.adminAccount.username &&
+        passwordInput === state.adminAccount.password
+      ) {
+        state.currentUser = {
+          username: state.adminAccount.username,
+          role: 'admin'
+        };
+        uiState.loginError = '';
+        state.currentPage = 'admin';
+        saveState();
+        showToast(
+          state.lang === 'nl'
+            ? 'Ingelogd als beheerder.'
+            : 'Signed in as administrator.',
+          'success'
+        );
+        render();
+        return;
+      }
+
+      // 2. Check Registered Client credentials
+      const matchedClient = state.clients.find(
+        c => c.username === usernameInput && c.password === passwordInput
+      );
+
+      if (matchedClient) {
+        state.currentUser = {
+          username: matchedClient.username,
+          role: 'client',
+          clientId: matchedClient.id
+        };
+        uiState.loginError = '';
+        uiState.portalTab = 'dashboard';
+        state.currentPage = 'portal';
+        saveState();
+        showToast(
+          state.lang === 'nl'
+            ? `Welkom terug, ${matchedClient.organization}.`
+            : `Welcome back, ${matchedClient.organization}.`,
+          'success'
+        );
+        render();
+        return;
+      }
+
+      // Invalid credentials
+      uiState.loginError = I18N[state.lang].loginPage.errorInvalid;
+      render();
+    }
+
+    function handleLogout() {
+      state.currentUser = null;
+      uiState.editingClientId = null;
+      uiState.previewingClientId = null;
+      uiState.isFullscreen = false;
+      state.currentPage = 'home';
+      saveState();
+      showToast(
+        state.lang === 'nl' ? 'U bent uitgelogd.' : 'You have been signed out.',
+        'info'
+      );
+      render();
+    }
+
+    // ----------------------------------------------------------------------------
+    // 6. CONTACT FORM HANDLER (Sends to jraviationsolutions@gmail.com)
+    // ----------------------------------------------------------------------------
+    function handleContactSubmit(event) {
+      event.preventDefault();
+      const org = document.getElementById('contact-org').value.trim();
+      const name = document.getElementById('contact-name').value.trim();
+      const email = document.getElementById('contact-email').value.trim();
+      const subject = document.getElementById('contact-subject').value.trim();
+      const message = document.getElementById('contact-message').value.trim();
+
+      const recipient = 'jraviationsolutions@gmail.com';
+      const formattedSubject = `[JR Aviation Solutions] ${subject} — ${org}`;
+      const formattedBody = [
+        `Organisatie / Organization: ${org}`,
+        `Naam / Name: ${name}`,
+        `E-mail / Email: ${email}`,
+        `Taal / Language: ${state.lang.toUpperCase()}`,
+        ``,
+        `Bericht / Message:`,
+        `${message}`
+      ].join('\n');
+
+      uiState.contactSubmittedPayload = {
+        recipient,
+        subject: formattedSubject,
+        body: formattedBody
+      };
+
+      const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(
+        formattedSubject
+      )}&body=${encodeURIComponent(formattedBody)}`;
+
+      // Open default mail client
+      window.location.href = mailtoUrl;
+      render();
+    }
+
+    // ----------------------------------------------------------------------------
+    // 7. ADMIN PORTAL ACTIONS (Maintenance Mode, Client CRUD, Code Upload)
+    // ----------------------------------------------------------------------------
+    function toggleMaintenanceMode() {
+      state.maintenanceMode = !state.maintenanceMode;
+      saveState();
+      showToast(
+        state.maintenanceMode
+          ? state.lang === 'nl'
+            ? 'Onderhoudsmodus ingeschakeld.'
+            : 'Maintenance mode enabled.'
+          : state.lang === 'nl'
+          ? 'Onderhoudsmodus uitgeschakeld. Website is live.'
+          : 'Maintenance mode disabled. Website is live.',
+        'info'
+      );
+      render();
+    }
+
+    function openClientEditor(clientId) {
+      uiState.editingClientId = clientId; // 'NEW' or existing ID
+      uiState.previewingClientId = null;
+      render();
+    }
+
+    function closeClientEditor() {
+      uiState.editingClientId = null;
+      render();
+    }
+
+    function handleHtmlFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const codeField = document.getElementById('edit-client-code');
+        if (codeField) {
+          codeField.value = e.target.result;
+          showToast(
+            state.lang === 'nl'
+              ? `Bestand "${file.name}" ingeladen in editor.`
+              : `File "${file.name}" loaded into editor.`,
+            'success'
+          );
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function saveClientConfiguration(event) {
+      event.preventDefault();
+      const org = document.getElementById('edit-client-org').value.trim();
+      const contactPerson = document.getElementById('edit-client-contact').value.trim();
+      const username = document.getElementById('edit-client-user').value.trim();
+      const password = document.getElementById('edit-client-pass').value;
+      const productTitle = document.getElementById('edit-client-product').value.trim();
+      const dashboardCode = document.getElementById('edit-client-code').value;
+      const documentation = document.getElementById('edit-client-docs').value;
+
+      // Prevent duplicate usernames with admin or other clients
+      if (username === state.adminAccount.username) {
+        showToast(
+          state.lang === 'nl'
+            ? 'Gebruikersnaam is gereserveerd voor beheerder.'
+            : 'Username is reserved for administrator.',
+          'error'
+        );
+        return;
+      }
+
+      const duplicateClient = state.clients.find(
+        c => c.username === username && c.id !== uiState.editingClientId
+      );
+      if (duplicateClient) {
+        showToast(
+          state.lang === 'nl'
+            ? 'Deze gebruikersnaam bestaat al.'
+            : 'This username already exists.',
+          'error'
+        );
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+
+      if (uiState.editingClientId === 'NEW') {
+        const newClient = {
+          id: 'client-' + Date.now(),
+          organization: org,
+          contactPerson,
+          username,
+          password,
+          productTitle,
+          lastUpdated: today,
+          dashboardCode,
+          documentation
+        };
+        state.clients.push(newClient);
+      } else {
+        const idx = state.clients.findIndex(c => c.id === uiState.editingClientId);
+        if (idx !== -1) {
+          state.clients[idx] = {
+            ...state.clients[idx],
+            organization: org,
+            contactPerson,
+            username,
+            password,
+            productTitle,
+            lastUpdated: today,
+            dashboardCode,
+            documentation
+          };
+        }
+      }
+
+      uiState.editingClientId = null;
+      saveState();
+      showToast(
+        state.lang === 'nl'
+          ? 'Klantgegevens en dashboardcodering succesvol opgeslagen.'
+          : 'Client details and dashboard code saved successfully.',
+        'success'
+      );
+      render();
+    }
+
+    function deleteClient(clientId) {
+      const client = state.clients.find(c => c.id === clientId);
+      if (!client) return;
+      const isNl = state.lang === 'nl';
+      showConfirmModal(
+        isNl ? 'Klantaccount verwijderen' : 'Remove Client Account',
+        isNl
+          ? `Weet u zeker dat u "${client.organization}" en de gekoppelde dashboardcode wilt verwijderen?`
+          : `Are you sure you want to remove "${client.organization}" and its assigned dashboard code?`,
+        () => {
+          state.clients = state.clients.filter(c => c.id !== clientId);
+          saveState();
+          showToast(
+            isNl ? 'Klantaccount verwijderd.' : 'Client account removed.',
+            'info'
+          );
+          render();
+        }
+      );
+    }
+
+    function resetApplicationState() {
+      const isNl = state.lang === 'nl';
+      showConfirmModal(
+        isNl ? 'Standaardinstellingen herstellen' : 'Reset Default Settings',
+        isNl
+          ? 'Hiermee worden alle wijzigingen aan klantaccounts en onderhoudsmodus teruggezet naar de oorspronkelijke beginwaarden.'
+          : 'This will restore all client accounts and maintenance settings back to their initial defaults.',
+        () => {
+          localStorage.removeItem(STORAGE_KEY);
+          const currentLang = state.lang;
+          const currentAdmin = state.currentUser;
+          state = structuredClone(DEFAULT_STATE);
+          state.lang = currentLang;
+          state.currentUser = currentAdmin;
+          state.currentPage = 'admin';
+          uiState.editingClientId = null;
+          uiState.previewingClientId = null;
+          saveState();
+          showToast(
+            isNl ? 'Standaardinstellingen hersteld.' : 'Default settings restored.',
+            'success'
+          );
+          render();
+        }
+      );
+    }
+
+    // ----------------------------------------------------------------------------
+    // 8. SHARED HEADER & FOOTER COMPONENTS
+    // ----------------------------------------------------------------------------
+    function renderHeader() {
+      const t = I18N[state.lang].nav;
+      const isAdmin = state.currentUser?.role === 'admin';
+      const isClient = state.currentUser?.role === 'client';
+
+      const navLinkClass = page =>
+        `text-sm font-medium transition-colors py-1 border-b-2 ${
+          state.currentPage === page
+            ? 'text-[#0B1F3A] border-[#0B1F3A]'
+            : 'text-[#475569] border-transparent hover:text-[#0B1F3A]'
+        }`;
+
+      return `
+        ${
+          state.maintenanceMode && isAdmin
+            ? `<div class="bg-[#0B1F3A] text-white text-xs py-2 px-4 text-center tracking-wide">
+                ${I18N[state.lang].maintenanceBanner}
+              </div>`
+            : ''
+        }
+        <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+              
+              <!-- Brand Logo -->
+              <button onclick="navigateTo('home')" class="text-left focus:outline-none">
+                ${renderBrandLogo('horizontal', 'md')}
+              </button>
+
+              <!-- Desktop Navigation -->
+              <nav class="hidden md:flex items-center gap-8">
+                <button onclick="navigateTo('home')" class="${navLinkClass('home')}">${t.home}</button>
+                <button onclick="navigateTo('methodology')" class="${navLinkClass('methodology')}">${t.methodology}</button>
+                <button onclick="navigateTo('contact')" class="${navLinkClass('contact')}">${t.contact}</button>
+                ${
+                  isClient
+                    ? `<button onclick="navigateTo('portal')" class="${navLinkClass('portal')}">${t.portal}</button>`
+                    : ''
+                }
+                ${
+                  isAdmin
+                    ? `<button onclick="navigateTo('admin')" class="${navLinkClass('admin')}">${t.admin}</button>`
+                    : ''
+                }
+              </nav>
+
+              <!-- Right Controls: Language Switcher & Auth -->
+              <div class="hidden md:flex items-center gap-4">
+                <!-- NL | EN Switcher -->
+                <div class="inline-flex items-center border border-slate-200 rounded-md p-0.5 bg-[#F8F9FA] text-xs font-medium">
+                  <button onclick="setLanguage('nl')" class="px-2.5 py-1 rounded transition-colors ${
+                    state.lang === 'nl'
+                      ? 'bg-[#0B1F3A] text-white'
+                      : 'text-slate-600 hover:text-[#0B1F3A]'
+                  }">NL</button>
+                  <button onclick="setLanguage('en')" class="px-2.5 py-1 rounded transition-colors ${
+                    state.lang === 'en'
+                      ? 'bg-[#0B1F3A] text-white'
+                      : 'text-slate-600 hover:text-[#0B1F3A]'
+                  }">EN</button>
+                </div>
+
+                ${
+                  state.currentUser
+                    ? `
+                      <div class="flex items-center gap-3 pl-2 border-l border-slate-200">
+                        <span class="text-xs font-mono text-slate-500">${escapeHTML(state.currentUser.username)}</span>
+                        <button onclick="handleLogout()" class="px-3.5 py-2 rounded-md border border-slate-300 text-xs font-medium text-[#0B1F3A] hover:bg-slate-50 transition-colors">
+                          ${t.logout}
+                        </button>
+                      </div>
+                    `
+                    : `
+                      <button onclick="navigateTo('login')" class="px-4 py-2 rounded-md bg-[#0B1F3A] hover:bg-[#16325B] text-white text-xs font-medium tracking-wide transition-colors">
+                        ${t.login}
+                      </button>
+                    `
+                }
+              </div>
+
+              <!-- Mobile Menu Trigger -->
+              <div class="flex items-center gap-3 md:hidden">
+                <div class="inline-flex items-center border border-slate-200 rounded-md p-0.5 bg-[#F8F9FA] text-xs font-medium">
+                  <button onclick="setLanguage('nl')" class="px-2 py-1 rounded ${
+                    state.lang === 'nl' ? 'bg-[#0B1F3A] text-white' : 'text-slate-600'
+                  }">NL</button>
+                  <button onclick="setLanguage('en')" class="px-2 py-1 rounded ${
+                    state.lang === 'en' ? 'bg-[#0B1F3A] text-white' : 'text-slate-600'
+                  }">EN</button>
+                </div>
+                <button onclick="uiState.mobileMenuOpen = !uiState.mobileMenuOpen; render();" class="p-2 rounded-md border border-slate-200 text-[#0B1F3A]" aria-label="Menu">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    ${
+                      uiState.mobileMenuOpen
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>'
+                    }
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile Navigation Drawer -->
+          ${
+            uiState.mobileMenuOpen
+              ? `
+                <div class="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-2">
+                  <button onclick="navigateTo('home')" class="block w-full text-left py-2.5 px-3 rounded-md text-sm font-medium ${
+                    state.currentPage === 'home' ? 'bg-slate-100 text-[#0B1F3A]' : 'text-slate-600'
+                  }">${t.home}</button>
+                  <button onclick="navigateTo('methodology')" class="block w-full text-left py-2.5 px-3 rounded-md text-sm font-medium ${
+                    state.currentPage === 'methodology' ? 'bg-slate-100 text-[#0B1F3A]' : 'text-slate-600'
+                  }">${t.methodology}</button>
+                  <button onclick="navigateTo('contact')" class="block w-full text-left py-2.5 px-3 rounded-md text-sm font-medium ${
+                    state.currentPage === 'contact' ? 'bg-slate-100 text-[#0B1F3A]' : 'text-slate-600'
+                  }">${t.contact}</button>
+                  ${
+                    isClient
+                      ? `<button onclick="navigateTo('portal')" class="block w-full text-left py-2.5 px-3 rounded-md text-sm font-medium ${
+                          state.currentPage === 'portal' ? 'bg-slate-100 text-[#0B1F3A]' : 'text-slate-600'
+                        }">${t.portal}</button>`
+                      : ''
+                  }
+                  ${
+                    isAdmin
+                      ? `<button onclick="navigateTo('admin')" class="block w-full text-left py-2.5 px-3 rounded-md text-sm font-medium ${
+                          state.currentPage === 'admin' ? 'bg-slate-100 text-[#0B1F3A]' : 'text-slate-600'
+                        }">${t.admin}</button>`
+                      : ''
+                  }
+                  <div class="pt-3 border-t border-slate-100">
+                    ${
+                      state.currentUser
+                        ? `<button onclick="handleLogout()" class="w-full py-2.5 px-4 rounded-md border border-slate-300 text-xs font-medium text-[#0B1F3A]">${t.logout} (${escapeHTML(state.currentUser.username)})</button>`
+                        : `<button onclick="navigateTo('login')" class="w-full py-2.5 px-4 rounded-md bg-[#0B1F3A] text-white text-xs font-medium">${t.login}</button>`
+                    }
+                  </div>
+                </div>
+              `
+              : ''
+          }
+        </header>
+      `;
+    }
+
+    function renderFooter() {
+      const t = I18N[state.lang].footer;
+      const navT = I18N[state.lang].nav;
+      return `
+        <footer class="bg-white border-t border-slate-200 mt-auto">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+              <div>
+                ${renderBrandLogo('horizontal', 'sm')}
+                <p class="mt-3 text-xs text-slate-500 max-w-md leading-relaxed">
+                  ${t.tagline}
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-6 text-xs font-medium text-slate-600">
+                <button onclick="navigateTo('home')" class="hover:text-[#0B1F3A] transition-colors">${navT.home}</button>
+                <button onclick="navigateTo('methodology')" class="hover:text-[#0B1F3A] transition-colors">${navT.methodology}</button>
+                <button onclick="navigateTo('contact')" class="hover:text-[#0B1F3A] transition-colors">${navT.contact}</button>
+                <button onclick="navigateTo('login')" class="hover:text-[#0B1F3A] transition-colors">${navT.portal}</button>
+              </div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-400">
+              <span>© ${new Date().getFullYear()} JR Aviation Solutions. ${t.rights}</span>
+              <a href="mailto:jraviationsolutions@gmail.com" class="hover:text-[#0B1F3A] transition-colors">jraviationsolutions@gmail.com</a>
+            </div>
+          </div>
+        </footer>
+      `;
+    }
+
+    // ----------------------------------------------------------------------------
+    // 9. PAGE VIEWS
+    // ----------------------------------------------------------------------------
+
+    function renderMaintenanceView() {
+      const t = I18N[state.lang].maintenanceView;
+      return `
+        <div class="min-h-screen flex flex-col justify-between bg-[#F8F9FA] px-4 py-8">
+          <div class="max-w-7xl mx-auto w-full flex justify-between items-center">
+            ${renderBrandLogo('horizontal', 'sm')}
+            <div class="inline-flex items-center border border-slate-200 rounded-md p-0.5 bg-white text-xs font-medium">
+              <button onclick="setLanguage('nl')" class="px-2.5 py-1 rounded ${
+                state.lang === 'nl' ? 'bg-[#0B1F3A] text-white' : 'text-slate-600'
+              }">NL</button>
+              <button onclick="setLanguage('en')" class="px-2.5 py-1 rounded ${
+                state.lang === 'en' ? 'bg-[#0B1F3A] text-white' : 'text-slate-600'
+              }">EN</button>
+            </div>
+          </div>
+
+          <main class="max-w-xl mx-auto w-full my-12 bg-white border border-slate-200 rounded-lg p-8 sm:p-12 text-center shadow-xs">
+            <div class="mb-6 flex justify-center">
+              ${renderBrandLogo('stacked', 'lg')}
+            </div>
+            <span class="inline-block px-3 py-1 rounded-full bg-slate-100 text-[#0B1F3A] text-xs font-medium tracking-wide mb-4">
+              ${t.tag}
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-semibold text-[#0B1F3A] tracking-tight">
+              ${t.title}
+            </h1>
+            <p class="mt-4 text-sm text-slate-600 leading-relaxed">
+              ${t.description}
+            </p>
+            <div class="mt-6 pt-6 border-t border-slate-100 text-xs text-slate-500">
+              ${t.contactNote}
+              <a href="mailto:jraviationsolutions@gmail.com" class="block mt-1 font-medium text-[#0B1F3A] underline underline-offset-4">
+                jraviationsolutions@gmail.com
+              </a>
+            </div>
+          </main>
+
+          <div class="max-w-7xl mx-auto w-full flex justify-center">
+            <button onclick="navigateTo('login')" class="text-xs text-slate-400 hover:text-[#0B1F3A] transition-colors">
+              ${t.adminLoginBtn}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHomePage() {
+      const t = I18N[state.lang].home;
+      return `
+        <main class="flex-grow">
+          <!-- Hero Section -->
+          <section class="bg-white border-b border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-7">
+                  <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F8F9FA] border border-slate-200 text-xs font-medium text-[#0B1F3A] mb-6">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#0B1F3A]"></span>
+                    ${t.badge}
+                  </div>
+                  <h1 class="text-3xl sm:text-4xl lg:text-[42px] font-semibold text-[#0B1F3A] leading-[1.18] tracking-tight">
+                    ${t.headline}
+                  </h1>
+                  <p class="mt-6 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl font-normal">
+                    ${t.subheadline}
+                  </p>
+                  <div class="mt-9 flex flex-wrap items-center gap-4">
+                    <button onclick="navigateTo('contact')" class="px-6 py-3 rounded-md bg-[#0B1F3A] hover:bg-[#16325B] text-white text-sm font-medium transition-colors">
+                      ${t.ctaPrimary}
+                    </button>
+                    <button onclick="navigateTo('login')" class="px-6 py-3 rounded-md bg-white hover:bg-slate-50 text-[#0B1F3A] border border-slate-300 text-sm font-medium transition-colors">
+                      ${t.ctaSecondary}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right Brand Identity Card (Calm, Architectural Line Presentation) -->
+                <div class="lg:col-span-5 flex justify-center lg:justify-end">
+                  <div class="w-full max-w-md bg-[#F8F9FA] border border-slate-200 rounded-lg p-10 sm:p-12 flex flex-col items-center justify-center text-center">
+                    ${renderBrandLogo('stacked', 'lg')}
+                    <div class="w-12 h-[1px] bg-slate-300 my-6"></div>
+                    <p class="text-xs text-slate-500 leading-relaxed max-w-xs">
+                      ${
+                        state.lang === 'nl'
+                          ? 'Gespecialiseerde datavisualisatie en maatwerk rapportages voor luchtvaartbedrijven en -organisaties.'
+                          : 'Dedicated data visualization and bespoke reporting suites for aviation enterprises and organizations.'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Core Principles Section -->
+          <section class="py-16 sm:py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div class="max-w-2xl">
+                <h2 class="text-2xl font-semibold text-[#0B1F3A] tracking-tight">${t.pillarsTitle}</h2>
+                <p class="mt-2 text-sm text-slate-600">${t.pillarsSubtitle}</p>
+              </div>
+
+              <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+                ${t.pillars
+                  .map(
+                    p => `
+                    <div class="bg-white border border-slate-200 rounded-lg p-7 flex flex-col justify-between">
+                      <div>
+                        <span class="font-mono text-xs font-semibold text-slate-400 tracking-wider">${p.code}</span>
+                        <h3 class="mt-3 text-lg font-semibold text-[#0B1F3A]">${p.title}</h3>
+                        <p class="mt-3 text-sm text-slate-600 leading-relaxed">${p.desc}</p>
+                      </div>
+                    </div>
+                  `
+                  )
+                  .join('')}
+              </div>
+            </div>
+          </section>
+
+          <!-- Workflow Section -->
+          <section class="bg-white border-t border-slate-200 py-16 sm:py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 class="text-2xl font-semibold text-[#0B1F3A] tracking-tight">${t.workflowTitle}</h2>
+              <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+                ${t.workflowSteps
+                  .map(
+                    s => `
+                    <div class="border-l-2 border-[#0B1F3A] pl-5 py-1">
+                      <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-500">${s.step}</span>
+                      <h3 class="mt-1.5 text-base font-semibold text-[#0B1F3A]">${s.title}</h3>
+                      <p class="mt-2 text-sm text-slate-600 leading-relaxed">${s.desc}</p>
+                    </div>
+                  `
+                  )
+                  .join('')}
+              </div>
+            </div>
+          </section>
+        </main>
+      `;
+    }
+
+    function renderMethodologyPage() {
+      const t = I18N[state.lang].methodology;
+      return `
+        <main class="flex-grow py-14 sm:py-20">
+          <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-500">${t.tag}</span>
+            <h1 class="mt-2 text-3xl sm:text-4xl font-semibold text-[#0B1F3A] tracking-tight">${t.title}</h1>
+            <p class="mt-5 text-base text-slate-600 leading-relaxed max-w-3xl">
+              ${t.intro}
+            </p>
+
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+              ${t.sections
+                .map(
+                  sec => `
+                  <div class="bg-white border border-slate-200 rounded-lg p-7">
+                    <h2 class="text-lg font-semibold text-[#0B1F3A] pb-4 border-b border-slate-100">${sec.title}</h2>
+                    <ul class="mt-5 space-y-3.5">
+                      ${sec.items
+                        .map(
+                          item => `
+                          <li class="flex items-start gap-3 text-sm text-slate-600 leading-relaxed">
+                            <span class="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#0B1F3A] shrink-0"></span>
+                            <span>${item}</span>
+                          </li>
+                        `
+                        )
+                        .join('')}
+                    </ul>
+                  </div>
+                `
+                )
+                .join('')}
+            </div>
+
+            <div class="mt-12 bg-white border border-slate-200 rounded-lg p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div>
+                <h3 class="text-lg font-semibold text-[#0B1F3A]">${t.ctaBoxTitle}</h3>
+                <p class="mt-1 text-sm text-slate-600">${t.ctaBoxText}</p>
+              </div>
+              <button onclick="navigateTo('contact')" class="shrink-0 px-5 py-2.5 rounded-md bg-[#0B1F3A] hover:bg-[#16325B] text-white text-sm font-medium transition-colors">
+                ${t.ctaBoxBtn}
+              </button>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    function renderContactPage() {
+      const t = I18N[state.lang].contact;
+      return `
+        <main class="flex-grow py-14 sm:py-20">
+          <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-500">${t.tag}</span>
+            <h1 class="mt-2 text-3xl font-semibold text-[#0B1F3A] tracking-tight">${t.title}</h1>
+            <p class="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl">
+              ${t.subtitle}
+            </p>
+
+            <div class="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-white border border-slate-200 text-xs">
+              <span class="text-slate-500">${t.directEmailLabel}:</span>
+              <a href="mailto:jraviationsolutions@gmail.com" class="font-mono font-medium text-[#0B1F3A] hover:underline">
+                jraviationsolutions@gmail.com
+              </a>
+            </div>
+
+            <div class="mt-8 bg-white border border-slate-200 rounded-lg p-6 sm:p-10">
+              <form onsubmit="handleContactSubmit(event)" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label for="contact-org" class="block text-xs font-medium text-[#0B1F3A] mb-2">${t.orgLabel} *</label>
+                    <input id="contact-org" type="text" required placeholder="${t.orgPlaceholder}"
+                      class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                  <div>
+                    <label for="contact-name" class="block text-xs font-medium text-[#0B1F3A] mb-2">${t.nameLabel} *</label>
+                    <input id="contact-name" type="text" required placeholder="${t.namePlaceholder}"
+                      class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label for="contact-email" class="block text-xs font-medium text-[#0B1F3A] mb-2">${t.emailLabel} *</label>
+                    <input id="contact-email" type="email" required placeholder="${t.emailPlaceholder}"
+                      class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                  <div>
+                    <label for="contact-subject" class="block text-xs font-medium text-[#0B1F3A] mb-2">${t.subjectLabel} *</label>
+                    <input id="contact-subject" type="text" required placeholder="${t.subjectPlaceholder}"
+                      class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                </div>
+
+                <div>
+                  <label for="contact-message" class="block text-xs font-medium text-[#0B1F3A] mb-2">${t.messageLabel} *</label>
+                  <textarea id="contact-message" rows="5" required placeholder="${t.messagePlaceholder}"
+                    class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]"></textarea>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+                  <button type="submit" class="px-6 py-3 rounded-md bg-[#0B1F3A] hover:bg-[#16325B] text-white text-sm font-medium transition-colors">
+                    ${t.submitBtn}
+                  </button>
+                </div>
+              </form>
+
+              ${
+                uiState.contactSubmittedPayload
+                  ? `
+                    <div class="mt-8 p-5 rounded-md bg-[#F8F9FA] border border-slate-200">
+                      <h3 class="text-sm font-semibold text-[#0B1F3A]">${t.sentSuccessTitle}</h3>
+                      <p class="mt-1 text-xs text-slate-600 leading-relaxed">${t.sentSuccessDesc}</p>
+                      <pre class="mt-3 p-3 bg-white border border-slate-200 rounded text-xs font-mono text-slate-700 whitespace-pre-wrap">${escapeHTML(
+                        `Aan: ${uiState.contactSubmittedPayload.recipient}\nOnderwerp: ${uiState.contactSubmittedPayload.subject}\n\n${uiState.contactSubmittedPayload.body}`
+                      )}</pre>
+                      <button type="button" onclick="copyTextToClipboard(uiState.contactSubmittedPayload.body)" class="mt-3 px-3.5 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-[#0B1F3A]">
+                        ${t.copyBtn}
+                      </button>
+                    </div>
+                  `
+                  : ''
+              }
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    function renderLoginPage() {
+      const t = I18N[state.lang].loginPage;
+      return `
+        <main class="flex-grow flex items-center justify-center py-16 px-4">
+          <div class="max-w-md w-full">
+            <div class="bg-white border border-slate-200 rounded-lg p-8 sm:p-10 shadow-xs">
+              <div class="flex justify-center mb-6">
+                ${renderBrandLogo('horizontal', 'sm')}
+              </div>
+
+              <div class="text-center mb-8">
+                <span class="text-[11px] font-mono uppercase tracking-widest text-slate-400">${t.tag}</span>
+                <h1 class="mt-1.5 text-xl font-semibold text-[#0B1F3A]">${t.title}</h1>
+                <p class="mt-2 text-xs text-slate-600 leading-relaxed">${t.subtitle}</p>
+              </div>
+
+              ${
+                uiState.loginError
+                  ? `<div class="mb-5 p-3 rounded-md bg-red-50 border border-red-200 text-xs text-red-800">${escapeHTML(
+                      uiState.loginError
+                    )}</div>`
+                  : ''
+              }
+
+              <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                  <label for="login-username" class="block text-xs font-medium text-[#0B1F3A] mb-1.5">
+                    ${t.username}
+                  </label>
+                  <input id="login-username" type="text" required autocomplete="username"
+                    class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                </div>
+
+                <div>
+                  <label for="login-password" class="block text-xs font-medium text-[#0B1F3A] mb-1.5">
+                    ${t.password}
+                  </label>
+                  <input id="login-password" type="password" required autocomplete="current-password"
+                    class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                </div>
+
+                <button type="submit" class="w-full py-2.5 px-4 rounded-md bg-[#0B1F3A] hover:bg-[#16325B] text-white text-sm font-medium transition-colors mt-2">
+                  ${t.submit}
+                </button>
+              </form>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    function renderClientPortalPage(overrideClientId = null) {
+      const t = I18N[state.lang].clientPortal;
+      const adminT = I18N[state.lang].adminPortal;
+      const targetClientId = overrideClientId || state.currentUser?.clientId;
+      const client = state.clients.find(c => c.id === targetClientId);
+
+      if (!client) {
+        return renderLoginPage();
+      }
+
+      const hasCode = Boolean(client.dashboardCode && client.dashboardCode.trim());
+      const hasDocs = Boolean(client.documentation && client.documentation.trim());
+
+      // Fullscreen Dashboard Overlay
+      if (uiState.isFullscreen && hasCode) {
+        return `
+          <div class="fixed inset-0 z-50 bg-white flex flex-col">
+            <div class="h-14 px-6 border-b border-slate-200 bg-white flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                ${renderBrandLogo('horizontal', 'sm')}
+                <span class="text-slate-300">|</span>
+                <span class="text-xs font-semibold text-[#0B1F3A]">${escapeHTML(client.productTitle || client.organization)}</span>
+              </div>
+              <button onclick="uiState.isFullscreen = false; render();" class="px-3.5 py-1.5 rounded-md bg-[#0B1F3A] text-white text-xs font-medium">
+                ${t.exitFullscreenBtn}
+              </button>
+            </div>
+            <iframe
+              title="${escapeHTML(client.productTitle || t.tabDashboard)}"
+              srcdoc="${escapeHTML(client.dashboardCode)}"
+              sandbox="allow-scripts allow-forms"
+              class="w-full flex-grow border-0 bg-[#F8F9FA]">
+            </iframe>
+          </div>
+        `;
+      }
+
+      return `
+        <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+          ${
+            overrideClientId
+              ? `
+                <div class="mb-5 flex items-center justify-between bg-white border border-slate-200 rounded-md px-4 py-2.5">
+                  <span class="text-xs font-medium text-slate-600">
+                    Admin Preview: <strong class="text-[#0B1F3A]">${escapeHTML(client.organization)}</strong>
+                  </span>
+                  <button onclick="uiState.previewingClientId = null; render();" class="text-xs font-semibold text-[#0B1F3A] hover:underline">
+                    ${adminT.backToAdminBtn}
+                  </button>
+                </div>
+              `
+              : ''
+          }
+
+          <!-- Client Top Summary Bar -->
+          <div class="bg-white border border-slate-200 rounded-lg p-6 mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2.5">
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">${t.tag}</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${hasCode ? 'bg-slate-100 text-[#0B1F3A]' : 'bg-slate-100 text-slate-600'}">
+                  ${hasCode ? t.statusActive : t.statusPending}
+                </span>
+              </div>
+              <h1 class="mt-1.5 text-xl sm:text-2xl font-semibold text-[#0B1F3A]">
+                ${t.welcome} ${escapeHTML(client.organization)}
+              </h1>
+              <p class="text-xs text-slate-500 mt-1">
+                ${t.assignedProduct}: <span class="font-medium text-[#0B1F3A]">${client.productTitle ? escapeHTML(client.productTitle) : t.noProductAssigned}</span>
+                ${client.lastUpdated ? ` • Update: ${escapeHTML(client.lastUpdated)}` : ''}
+              </p>
+            </div>
+
+            <!-- Portal Tabs & Export Actions -->
+            <div class="flex flex-wrap items-center gap-2.5">
+              <div class="inline-flex rounded-md border border-slate-200 p-1 bg-[#F8F9FA]">
+                <button onclick="uiState.portalTab = 'dashboard'; render();"
+                  class="px-3.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                    uiState.portalTab === 'dashboard'
+                      ? 'bg-[#0B1F3A] text-white'
+                      : 'text-slate-600 hover:text-[#0B1F3A]'
+                  }">
+                  ${t.tabDashboard}
+                </button>
+                <button onclick="uiState.portalTab = 'docs'; render();"
+                  class="px-3.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                    uiState.portalTab === 'docs'
+                      ? 'bg-[#0B1F3A] text-white'
+                      : 'text-slate-600 hover:text-[#0B1F3A]'
+                  }">
+                  ${t.tabDocs}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Portal Tab Content -->
+          ${uiState.portalTab === 'dashboard' ? `
+            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+              <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50/60 flex flex-wrap items-center justify-between gap-3">
+                <span class="text-xs font-semibold text-[#0B1F3A]">
+                  ${client.productTitle ? escapeHTML(client.productTitle) : t.tabDashboard}
+                </span>
+                ${hasCode ? `
+                  <div class="flex items-center gap-2.5">
+                    <button onclick="downloadTextFile('${escapeHTML(client.username)}-dashboard.html', state.clients.find(c => c.id === '${client.id}').dashboardCode, 'text/html;charset=utf-8')"
+                      class="px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-[#0B1F3A] transition-colors">
+                      ${t.downloadHtmlBtn}
+                    </button>
+                    <button onclick="uiState.isFullscreen = true; render();"
+                      class="px-3 py-1.5 rounded bg-[#0B1F3A] hover:bg-[#16325B] text-white text-xs font-medium transition-colors">
+                      ${t.fullscreenBtn}
+                    </button>
+                  </div>
+                ` : ''}
+              </div>
+
+              ${hasCode ? `
+                <iframe
+                  title="${escapeHTML(client.productTitle || t.tabDashboard)}"
+                  srcdoc="${escapeHTML(client.dashboardCode)}"
+                  sandbox="allow-scripts allow-forms"
+                  class="w-full h-[740px] border-0 bg-[#F8F9FA]">
+                </iframe>
+              ` : `
+                <div class="px-6 py-20 text-center">
+                  <div class="mx-auto w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[#0B1F3A] mb-4">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                    </svg>
+                  </div>
+                  <h2 class="text-sm font-semibold text-[#0B1F3A]">${t.noDashboardTitle}</h2>
+                  <p class="mt-2 text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">${t.noDashboardMsg}</p>
+                </div>
+              `}
+            </div>
+          ` : `
+            <!-- Product Documentation Tab -->
+            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+              <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/60 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-sm font-semibold text-[#0B1F3A]">${t.tabDocs}${client.productTitle ? ` — ${escapeHTML(client.productTitle)}` : ''}</h2>
+                </div>
+                ${hasDocs ? `
+                  <button onclick="downloadTextFile('${escapeHTML(client.username)}-documentation.txt', state.clients.find(c => c.id === '${client.id}').documentation)"
+                    class="px-3.5 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-[#0B1F3A] transition-colors">
+                    ${t.downloadDocsBtn}
+                  </button>
+                ` : ''}
+              </div>
+
+              <div class="p-6 sm:p-8">
+                ${hasDocs ? `
+                  <div class="prose prose-slate max-w-none">
+                    <pre class="whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed bg-[#F8F9FA] p-6 rounded-lg border border-slate-200">${escapeHTML(client.documentation)}</pre>
+                  </div>
+                ` : `
+                  <div class="py-14 text-center">
+                    <h3 class="text-sm font-semibold text-[#0B1F3A]">${t.noDocsTitle}</h3>
+                    <p class="mt-2 text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">${t.noDocsMsg}</p>
+                  </div>
+                `}
+              </div>
+            </div>
+          `}
+        </main>
+      `;
+    }
+
+    function renderAdminPage() {
+      if (uiState.previewingClientId) {
+        return renderClientPortalPage(uiState.previewingClientId);
+      }
+
+      const t = I18N[state.lang].adminPortal;
+      const editingClient =
+        uiState.editingClientId === 'NEW'
+          ? {
+              organization: '',
+              contactPerson: '',
+              username: '',
+              password: '',
+              productTitle: '',
+              dashboardCode: '',
+              documentation: ''
+            }
+          : state.clients.find(c => c.id === uiState.editingClientId);
+
+      return `
+        <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+          
+          <!-- Admin Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-500">${t.tag}</span>
+              <h1 class="mt-1 text-2xl font-semibold text-[#0B1F3A]">${t.title}</h1>
+              <p class="text-sm text-slate-600 mt-1">${t.subtitle}</p>
+            </div>
+            <button onclick="resetApplicationState()" class="self-start sm:self-auto px-3.5 py-2 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-medium text-slate-600 transition-colors">
+              ${t.resetDemoBtn}
+            </button>
+          </div>
+
+          <!-- Maintenance Mode Control Panel -->
+          <div class="bg-white border border-slate-200 rounded-lg p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="max-w-2xl">
+              <div class="flex items-center gap-3">
+                <h2 class="text-base font-semibold text-[#0B1F3A]">${t.maintenanceTitle}</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${state.maintenanceMode ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-100 text-[#0B1F3A]'}">
+                  ${state.maintenanceMode ? t.maintenanceActive : t.maintenanceInactive}
+                </span>
+              </div>
+              <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                ${t.maintenanceDesc}
+              </p>
+            </div>
+            <button onclick="toggleMaintenanceMode()"
+              class="shrink-0 px-4 py-2.5 rounded-md text-xs font-semibold transition-colors ${state.maintenanceMode ? 'bg-[#0B1F3A] text-white hover:bg-[#16325B]' : 'border border-[#0B1F3A] text-[#0B1F3A] hover:bg-slate-50'}">
+              ${t.toggleMaintenance}
+            </button>
+          </div>
+
+          <!-- Client & Code Editor View (When Adding or Editing a Client) -->
+          ${uiState.editingClientId && editingClient ? `
+            <div class="bg-white border border-slate-200 rounded-lg p-6 sm:p-8">
+              <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-200">
+                <h2 class="text-lg font-semibold text-[#0B1F3A]">
+                  ${uiState.editingClientId === 'NEW' ? t.editorTitleNew : t.editorTitleEdit}
+                </h2>
+                <button onclick="closeClientEditor()" class="text-xs font-medium text-slate-500 hover:text-[#0B1F3A]">✕</button>
+              </div>
+
+              <form onsubmit="saveClientConfiguration(event)" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div>
+                    <label class="block text-xs font-medium text-[#0B1F3A] mb-1.5">${t.fieldOrg} *</label>
+                    <input id="edit-client-org" type="text" required value="${escapeHTML(editingClient.organization)}"
+                      class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-[#0B1F3A] mb-1.5">${t.fieldContact}</label>
+                    <input id="edit-client-contact" type="text" value="${escapeHTML(editingClient.contactPerson)}"
+                      class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-[#0B1F3A] mb-1.5">${t.fieldProduct} *</label>
+                    <input id="edit-client-product" type="text" required value="${escapeHTML(editingClient.productTitle)}"
+                      class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-[#0B1F3A] mb-1.5">${t.fieldUser} *</label>
+                    <input id="edit-client-user" type="text" required value="${escapeHTML(editingClient.username)}"
+                      class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-[#0B1F3A] mb-1.5">${t.fieldPass} *</label>
+                    <input id="edit-client-pass" type="text" required value="${escapeHTML(editingClient.password)}"
+                      class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-[#0B1F3A] mb-1.5">${t.fieldUploadFile}</label>
+                    <input type="file" accept=".html,.htm,.txt" onchange="handleHtmlFileUpload(event)"
+                      class="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-[#0B1F3A] hover:file:bg-slate-200 cursor-pointer" />
+                  </div>
+                </div>
+
+                <!-- Dashboard Code Editor -->
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label for="edit-client-code" class="block text-xs font-semibold text-[#0B1F3A]">
+                      ${t.fieldCode}
+                    </label>
+                    <span class="text-[11px] text-slate-400">HTML / CSS / JS (Sandboxed)</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mb-2">${t.fieldCodeHelp}</p>
+                  <textarea id="edit-client-code" rows="12" spellcheck="false"
+                    class="w-full p-3.5 font-mono text-xs bg-[#F8F9FA] text-[#0B1F3A] border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]">${escapeHTML(editingClient.dashboardCode)}</textarea>
+                </div>
+
+                <!-- Product Documentation Editor -->
+                <div>
+                  <label for="edit-client-docs" class="block text-xs font-semibold text-[#0B1F3A] mb-1.5">
+                    ${t.fieldDocs}
+                  </label>
+                  <textarea id="edit-client-docs" rows="7"
+                    class="w-full p-3.5 text-sm bg-[#F8F9FA] text-[#0B1F3A] border border-slate-300 rounded-md focus:outline-none focus:border-[#0B1F3A]">${escapeHTML(editingClient.documentation)}</textarea>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                  <button type="button" onclick="closeClientEditor()" class="px-4 py-2 rounded-md border border-slate-300 text-xs font-medium text-slate-600 hover:text-[#0B1F3A]">
+                    ${t.cancelBtn}
+                  </button>
+                  <button type="submit" class="px-5 py-2.5 rounded-md bg-[#0B1F3A] hover:bg-[#16325B] text-white text-xs font-semibold transition-colors">
+                    ${t.saveBtn}
+                  </button>
+                </div>
+              </form>
+            </div>
+          ` : `
+            <!-- Registered Clients Table -->
+            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+              <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-base font-semibold text-[#0B1F3A]">${t.clientsHeading} (${state.clients.length})</h2>
+                <button onclick="openClientEditor('NEW')" class="px-4 py-2 rounded-md bg-[#0B1F3A] hover:bg-[#16325B] text-white text-xs font-semibold transition-colors">
+                  ${t.addClientBtn}
+                </button>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
+                      <th class="py-3.5 px-6 font-medium">${t.tableOrg}</th>
+                      <th class="py-3.5 px-6 font-medium">${t.tableUser}</th>
+                      <th class="py-3.5 px-6 font-medium">${t.tableProduct}</th>
+                      <th class="py-3.5 px-6 font-medium">${t.tableStatus}</th>
+                      <th class="py-3.5 px-6 font-medium text-right">${t.tableActions}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    ${state.clients.map(c => {
+                      const hasCode = Boolean(c.dashboardCode && c.dashboardCode.trim());
+                      return `
+                        <tr class="hover:bg-slate-50/70 transition-colors">
+                          <td class="py-4 px-6">
+                            <div class="font-semibold text-[#0B1F3A]">${escapeHTML(c.organization)}</div>
+                            ${c.contactPerson ? `<div class="text-xs text-slate-500">${escapeHTML(c.contactPerson)}</div>` : ''}
+                          </td>
+                          <td class="py-4 px-6 font-mono text-xs text-slate-700">
+                            ${escapeHTML(c.username)}
+                          </td>
+                          <td class="py-4 px-6 text-xs text-slate-700">
+                            ${c.productTitle ? escapeHTML(c.productTitle) : '<span class="text-slate-400">—</span>'}
+                          </td>
+                          <td class="py-4 px-6">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${hasCode ? 'bg-slate-100 text-[#0B1F3A]' : 'bg-amber-50 text-amber-800 border border-amber-200'}">
+                              ${hasCode ? t.statusConfigured : t.statusEmpty}
+                            </span>
+                          </td>
+                          <td class="py-4 px-6 text-right">
+                            <div class="inline-flex items-center gap-2">
+                              <button onclick="uiState.previewingClientId = '${c.id}'; uiState.portalTab = 'dashboard'; render();"
+                                class="px-2.5 py-1.5 rounded border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700">
+                                ${t.previewClientBtn}
+                              </button>
+                              <button onclick="openClientEditor('${c.id}')"
+                                class="px-3 py-1.5 rounded bg-[#0B1F3A] hover:bg-[#16325B] text-white text-xs font-medium">
+                                ${t.editBtn}
+                              </button>
+                              <button onclick="deleteClient('${c.id}')"
+                                class="px-2.5 py-1.5 rounded border border-red-200 hover:bg-red-50 text-xs font-medium text-red-700">
+                                ${t.deleteBtn}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `}
+        </main>
+      `;
+    }
+
+    // ----------------------------------------------------------------------------
+    // 10. MAIN APPLICATION RENDER LOOP
+    // ----------------------------------------------------------------------------
+    function render() {
+      const root = document.getElementById('app');
+      const isAdmin = state.currentUser?.role === 'admin';
+
+      // Maintenance Mode Guard:
+      // Public visitors see the maintenance screen unless navigating to 'login' or logged in as admin.
+      if (state.maintenanceMode && !isAdmin && state.currentPage !== 'login') {
+        root.innerHTML = renderMaintenanceView();
+        return;
+      }
+
+      let contentHTML = '';
+      switch (state.currentPage) {
+        case 'methodology':
+          contentHTML = renderMethodologyPage();
+          break;
+        case 'contact':
+          contentHTML = renderContactPage();
+          break;
+        case 'login':
+          contentHTML = renderLoginPage();
+          break;
+        case 'portal':
+          contentHTML = state.currentUser ? renderClientPortalPage() : renderLoginPage();
+          break;
+        case 'admin':
+          contentHTML = isAdmin ? renderAdminPage() : renderLoginPage();
+          break;
+        case 'home':
+        default:
+          contentHTML = renderHomePage();
+          break;
+      }
+
+      root.innerHTML = `
+        ${renderHeader()}
+        ${contentHTML}
+        ${renderFooter()}
+      `;
+    }
+
+    // Initialize Application
+    window.addEventListener('DOMContentLoaded', () => {
+      document.documentElement.lang = state.lang;
+      render();
+    });
+  </script>
+</body>
+</html>
